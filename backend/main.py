@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 import pandas as pd
 import uuid
 import os
+from core.validator import detect_problem_type
 
 app = FastAPI(title="AutoML Web App")
 
@@ -36,11 +37,15 @@ async def upload_dataset(
     dataset_id = str(uuid.uuid4())
     file_path = os.path.join(DATASET_DIR, f"{dataset_id}.csv")
     df.to_csv(file_path, index=False)
+    problem_type = detect_problem_type(df, target)
+
 
     return {
-        "message": "Dataset uploaded successfully",
-        "dataset_id": dataset_id,
-        "columns": df.columns.tolist(),
-        "target": target,
-        "rows": df.shape[0]
-    }
+    "message": "Dataset uploaded successfully",
+    "dataset_id": dataset_id,
+    "columns": df.columns.tolist(),
+    "target": target,
+    "rows": df.shape[0],
+    "problem_type": problem_type
+}
+
