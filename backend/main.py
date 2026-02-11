@@ -4,6 +4,8 @@ import uuid
 import os
 from core.validator import detect_problem_type
 from core.preprocessing import build_preprocessing_pipeline
+from core.trainer import train_and_evaluate
+
 
 app = FastAPI(title="AutoML Web App")
 
@@ -40,6 +42,8 @@ async def upload_dataset(
     df.to_csv(file_path, index=False)
     problem_type = detect_problem_type(df, target)
     X_train, X_test, y_train, y_test, preprocessor = build_preprocessing_pipeline(df, target)
+    results = train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preprocessor)
+
 
 
 
@@ -51,7 +55,9 @@ async def upload_dataset(
     "rows": df.shape[0],
     "problem_type": problem_type,
     "train_shape": X_train.shape,
-    "test_shape": X_test.shape
+    "test_shape": X_test.shape,
+    "model_results": results
 }
+
 
 
