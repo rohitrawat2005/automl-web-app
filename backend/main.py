@@ -5,8 +5,7 @@ import os
 from core.validator import detect_problem_type
 from core.preprocessing import build_preprocessing_pipeline
 from core.trainer import train_and_evaluate
-
-
+import joblib
 app = FastAPI(title="AutoML Web App")
 
 DATASET_DIR = "storage/datasets"
@@ -42,7 +41,17 @@ async def upload_dataset(
     df.to_csv(file_path, index=False)
     problem_type = detect_problem_type(df, target)
     X_train, X_test, y_train, y_test, preprocessor = build_preprocessing_pipeline(df, target)
-    results = train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preprocessor)
+    results, best_model_name, best_pipeline = train_and_evaluate(
+        problem_type,
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        preprocessor
+        )
+    model_path = f"storage/models/{dataset_id}_best_model.pkl"
+    joblib.dump(best_pipeline, model_path)
+
 
 
 
@@ -56,7 +65,10 @@ async def upload_dataset(
     "problem_type": problem_type,
     "train_shape": X_train.shape,
     "test_shape": X_test.shape,
-    "model_results": results
+    "model_results": results,
+    "best_model": best_model_name,
+    "model_path": model_path
+
 }
 
 
