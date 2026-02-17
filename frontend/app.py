@@ -38,15 +38,43 @@ if uploaded_file is not None:
             files = {"file": uploaded_file}
             data = {"target": target_column}
 
-            response = requests.post(
-                f"{BACKEND_URL}/upload",
-                files=files,
-                data=data
-            )
+            try:
+                response = requests.post(
+                    f"{BACKEND_URL}/upload",
+                    files=files,
+                    data=data
+                )
+            except Exception as e:
+                st.error(f"Backend connection failed: {e}")
+                st.stop()
 
         if response.status_code == 200:
+            try:
+                result = response.json()
+            except Exception:
+                st.error("Backend returned invalid response")
+                st.stop()
+
+            if not result:
+                st.error("Empty response from backend")
+                st.stop()
+
             st.success("Dataset uploaded successfully 🎉")
-            st.json(response.json())
+            st.json(result)
+
+            dataset_id = result.get("dataset_id")
+
+            if dataset_id:
+                download_url = f"{BACKEND_URL}/download/{dataset_id}"
+
+                st.markdown("### 📥 Download Best Model")
+                st.markdown(f"[Click here to download model]({download_url})")
+            else:
+                st.warning("Model not available for download.")
+
         else:
             st.error("Upload failed ❌")
-            st.json(response.json())
+            try:
+                st.json(response.json())
+            except:
+                st.write(response.text)
