@@ -11,6 +11,7 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
     best_score = None
     best_model_name = None
     best_pipeline = None
+    feature_importance = None
 
     if problem_type == "regression":
         models = {
@@ -19,8 +20,11 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
         }
 
         for name, model in models.items():
+
             pipeline = make_pipeline(preprocessor, model)
+
             pipeline.fit(X_train, y_train)
+
             predictions = pipeline.predict(X_test)
 
             rmse = np.sqrt(mean_squared_error(y_test, predictions))
@@ -31,7 +35,6 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
                 "R2": round(r2, 4)
             }
 
-            # Choose best based on R2
             if best_score is None or r2 > best_score:
                 best_score = r2
                 best_model_name = name
@@ -44,8 +47,11 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
         }
 
         for name, model in models.items():
+
             pipeline = make_pipeline(preprocessor, model)
+
             pipeline.fit(X_train, y_train)
+
             predictions = pipeline.predict(X_test)
 
             accuracy = accuracy_score(y_test, predictions)
@@ -54,10 +60,19 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
                 "Accuracy": round(accuracy, 4)
             }
 
-            # Choose best based on accuracy
             if best_score is None or accuracy > best_score:
                 best_score = accuracy
                 best_model_name = name
                 best_pipeline = pipeline
 
-    return results, best_model_name, best_pipeline
+    # Extract feature importance if available
+    try:
+        model = best_pipeline.named_steps[list(best_pipeline.named_steps.keys())[-1]]
+
+        if hasattr(model, "feature_importances_"):
+            feature_importance = model.feature_importances_.tolist()
+
+    except:
+        pass
+
+    return results, best_model_name, best_pipeline, feature_importance

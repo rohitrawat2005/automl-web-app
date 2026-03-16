@@ -28,6 +28,7 @@ async def upload_dataset(
     file: UploadFile = File(...),
     target: str = Form(...)
 ):
+
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed")
 
@@ -39,22 +40,20 @@ async def upload_dataset(
     if target not in df.columns:
         raise HTTPException(
             status_code=400,
-            detail=f"Target column '{target}' not found in dataset"
+            detail=f"Target column '{target}' not found"
         )
 
-    # Save dataset
     dataset_id = str(uuid.uuid4())
-    file_path = os.path.join(DATASET_DIR, f"{dataset_id}.csv")
-    df.to_csv(file_path, index=False)
 
-    # Detect problem type
+    dataset_path = os.path.join(DATASET_DIR, f"{dataset_id}.csv")
+
+    df.to_csv(dataset_path, index=False)
+
     problem_type = detect_problem_type(df, target)
 
-    # Preprocess
     X_train, X_test, y_train, y_test, preprocessor = build_preprocessing_pipeline(df, target)
 
-    # Train models
-    results, best_model_name, best_pipeline = train_and_evaluate(
+    results, best_model_name, best_pipeline, feature_importance = train_and_evaluate(
         problem_type,
         X_train,
         X_test,
@@ -63,11 +62,10 @@ async def upload_dataset(
         preprocessor
     )
 
-    # Save best model
     model_path = os.path.join(MODEL_DIR, f"{dataset_id}_best_model.pkl")
+
     joblib.dump(best_pipeline, model_path)
 
-    # ✅ RETURN MUST BE INSIDE UPLOAD FUNCTION
     return {
         "message": "Dataset uploaded successfully",
         "dataset_id": dataset_id,
@@ -79,12 +77,14 @@ async def upload_dataset(
         "test_shape": X_test.shape,
         "model_results": results,
         "best_model": best_model_name,
-        "model_path": model_path
+        "model_path": model_path,
+        "feature_importance": feature_importance
     }
 
 
 @app.get("/download/{dataset_id}")
 def download_model(dataset_id: str):
+
     model_path = os.path.join(MODEL_DIR, f"{dataset_id}_best_model.pkl")
 
     if not os.path.exists(model_path):

@@ -15,13 +15,16 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
+
     df = pd.read_csv(uploaded_file)
 
     st.subheader("📊 Dataset Preview")
     st.dataframe(df.head())
 
     st.subheader("📈 Dataset Summary")
+
     col1, col2, col3 = st.columns(3)
+
     col1.metric("Rows", df.shape[0])
     col2.metric("Columns", df.shape[1])
     col3.metric("Missing Values", df.isnull().sum().sum())
@@ -32,10 +35,13 @@ if uploaded_file is not None:
     )
 
     if st.button("Upload Dataset"):
-        with st.spinner("Uploading dataset..."):
+
+        with st.spinner("Training models..."):
+
             uploaded_file.seek(0)
 
             files = {"file": uploaded_file}
+
             data = {"target": target_column}
 
             try:
@@ -49,31 +55,55 @@ if uploaded_file is not None:
                 st.stop()
 
         if response.status_code == 200:
-            try:
-                result = response.json()
-            except Exception:
-                st.error("Backend returned invalid response")
-                st.stop()
 
-            if not result:
-                st.error("Empty response from backend")
-                st.stop()
+            result = response.json()
 
             st.success("Dataset uploaded successfully 🎉")
-            st.json(result)
+
+            st.subheader("📊 Model Comparison")
+
+            results = result.get("model_results")
+
+            if results:
+                df_results = pd.DataFrame(results).T
+                st.dataframe(df_results)
+
+            best_model = result.get("best_model")
+
+            if best_model:
+                st.success(f"🏆 Best Model Selected: **{best_model}**")
+
+            feature_importance = result.get("feature_importance")
+
+            if feature_importance:
+
+                st.subheader("📊 Feature Importance")
+
+                features = df.columns.drop(target_column)
+
+                feature_df = pd.DataFrame({
+                    "Feature": features,
+                    "Importance": feature_importance
+                })
+
+                feature_df = feature_df.sort_values(by="Importance", ascending=False)
+
+                st.bar_chart(feature_df.set_index("Feature"))
 
             dataset_id = result.get("dataset_id")
 
             if dataset_id:
+
                 download_url = f"{BACKEND_URL}/download/{dataset_id}"
 
-                st.markdown("### 📥 Download Best Model")
-                st.markdown(f"[Click here to download model]({download_url})")
-            else:
-                st.warning("Model not available for download.")
+                st.subheader("📥 Download Best Model")
+
+                st.markdown(f"[Download Trained Model]({download_url})")
 
         else:
+
             st.error("Upload failed ❌")
+
             try:
                 st.json(response.json())
             except:
