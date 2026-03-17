@@ -1,6 +1,6 @@
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.metrics import mean_squared_error, r2_score, accuracy_score
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, confusion_matrix
 from sklearn.pipeline import make_pipeline
 import numpy as np
 
@@ -14,6 +14,7 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
     feature_importance = None
 
     if problem_type == "regression":
+
         models = {
             "LinearRegression": LinearRegression(),
             "RandomForestRegressor": RandomForestRegressor(random_state=42)
@@ -41,6 +42,7 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
                 best_pipeline = pipeline
 
     else:
+
         models = {
             "LogisticRegression": LogisticRegression(max_iter=1000),
             "RandomForestClassifier": RandomForestClassifier(random_state=42)
@@ -55,9 +57,11 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
             predictions = pipeline.predict(X_test)
 
             accuracy = accuracy_score(y_test, predictions)
+            cm = confusion_matrix(y_test, predictions).tolist()
 
             results[name] = {
-                "Accuracy": round(accuracy, 4)
+                "Accuracy": round(accuracy, 4),
+                "ConfusionMatrix": cm
             }
 
             if best_score is None or accuracy > best_score:
@@ -65,7 +69,7 @@ def train_and_evaluate(problem_type, X_train, X_test, y_train, y_test, preproces
                 best_model_name = name
                 best_pipeline = pipeline
 
-    # Extract feature importance if available
+    # Feature Importance (only works for tree models)
     try:
         model = best_pipeline.named_steps[list(best_pipeline.named_steps.keys())[-1]]
 

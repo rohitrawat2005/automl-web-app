@@ -9,10 +9,7 @@ st.write("Upload your dataset and select the target column")
 
 BACKEND_URL = "http://127.0.0.1:8000"
 
-uploaded_file = st.file_uploader(
-    "Upload CSV file",
-    type=["csv"]
-)
+uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
 if uploaded_file is not None:
 
@@ -29,10 +26,7 @@ if uploaded_file is not None:
     col2.metric("Columns", df.shape[1])
     col3.metric("Missing Values", df.isnull().sum().sum())
 
-    target_column = st.selectbox(
-        "Select target column",
-        options=df.columns
-    )
+    target_column = st.selectbox("Select target column", options=df.columns)
 
     if st.button("Upload Dataset"):
 
@@ -41,7 +35,6 @@ if uploaded_file is not None:
             uploaded_file.seek(0)
 
             files = {"file": uploaded_file}
-
             data = {"target": target_column}
 
             try:
@@ -60,6 +53,9 @@ if uploaded_file is not None:
 
             st.success("Dataset uploaded successfully 🎉")
 
+            # ======================
+            # MODEL COMPARISON
+            # ======================
             st.subheader("📊 Model Comparison")
 
             results = result.get("model_results")
@@ -68,11 +64,41 @@ if uploaded_file is not None:
                 df_results = pd.DataFrame(results).T
                 st.dataframe(df_results)
 
+                # ======================
+                # PERFORMANCE CHART
+                # ======================
+                st.subheader("📈 Model Performance")
+
+                if "RMSE" in df_results.columns:
+                    st.bar_chart(df_results["RMSE"])
+
+                elif "Accuracy" in df_results.columns:
+                    st.bar_chart(df_results["Accuracy"])
+
+                # ======================
+                # CONFUSION MATRIX
+                # ======================
+                if "Accuracy" in df_results.columns:
+
+                    st.subheader("📊 Confusion Matrix")
+
+                    for model_name, model_data in results.items():
+                        if "ConfusionMatrix" in model_data:
+                            st.write(f"🔹 {model_name}")
+                            cm_df = pd.DataFrame(model_data["ConfusionMatrix"])
+                            st.dataframe(cm_df)
+
+            # ======================
+            # BEST MODEL
+            # ======================
             best_model = result.get("best_model")
 
             if best_model:
                 st.success(f"🏆 Best Model Selected: **{best_model}**")
 
+            # ======================
+            # FEATURE IMPORTANCE
+            # ======================
             feature_importance = result.get("feature_importance")
 
             if feature_importance:
@@ -90,18 +116,18 @@ if uploaded_file is not None:
 
                 st.bar_chart(feature_df.set_index("Feature"))
 
+            # ======================
+            # DOWNLOAD MODEL
+            # ======================
             dataset_id = result.get("dataset_id")
 
             if dataset_id:
-
                 download_url = f"{BACKEND_URL}/download/{dataset_id}"
 
                 st.subheader("📥 Download Best Model")
-
                 st.markdown(f"[Download Trained Model]({download_url})")
 
         else:
-
             st.error("Upload failed ❌")
 
             try:
